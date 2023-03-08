@@ -1,0 +1,88 @@
+#include "swerveMath.h"
+#include <stdexcept>
+
+SwerveMath::SwerveMath(double m_length, double m_width, double m_)
+{
+    // if (m_length == 0.0 || m_width == 0.0)
+    //     throw std::invalid_argument("Width and Length cannot be zero");
+
+    LENGTH = m_length;
+    WIDTH = m_width;
+    R = sqrt((LENGTH * LENGTH) + (WIDTH * WIDTH));
+}
+
+void SwerveMath::Calculate(float returnValues[], double x_vel, double y_vel, double z_rot, double angle)
+{
+    float returnValues_temp[2];
+    if (angle != -999.0)
+    {
+        angle = angle * PI / 180;
+        double temp = x_vel * cos(angle) + y_vel * sin(angle);
+        y_vel = -x_vel * sin(angle) + y_vel * cos(angle);
+        x_vel = temp;
+    }
+
+    double A = x_vel - z_rot * (WIDTH / R);
+    double B = x_vel + z_rot * (WIDTH / R);
+    double C = y_vel + z_rot * (LENGTH / R);
+    double D = y_vel - z_rot * (LENGTH / R);
+
+    double wSpeed_FL = sqrt(A * A + C * C);
+    double wAngle_FL = atan2(C, A) * 180 / PI;
+    double wSpeed_FR = sqrt(B * B + C * C);
+    double wAngle_FR = atan2(C, B) * 180 / PI;
+    double wSpeed_BL = sqrt(A * A + D * D);
+    double wAngle_BL = atan2(D, A) * 180 / PI;
+    double wSpeed_BR = sqrt(B * B + D * D);
+    double wAngle_BR = atan2(D, B) * 180 / PI;
+
+    //normalizes speeds so they're within the ranges of -max_Wheel_velocity to max_Wheel_velocity
+    double maxSpeed = wSpeed_FL;
+    if (wSpeed_FR > maxSpeed)
+        maxSpeed = wSpeed_FR;
+    if (wSpeed_BL > maxSpeed)
+        maxSpeed = wSpeed_BL;
+    if (wSpeed_BR > maxSpeed)
+        maxSpeed = wSpeed_BR;
+
+    // if (maxSpeed > 1)
+    if (maxSpeed > max_Wheel_velocity)
+    {
+        wSpeed_FL /= maxSpeed;
+        wSpeed_FR /= maxSpeed;
+        wSpeed_BL /= maxSpeed;
+        wSpeed_BR /= maxSpeed;
+    }
+    optimizeAngle(returnValues_temp, wSpeed_FL, wAngle_FL);
+    returnValues[0] = returnValues_temp[0]; //wSpeed_FL
+    returnValues[1] = returnValues_temp[1]; //wAngle_FL
+    optimizeAngle(returnValues_temp, wSpeed_FR, wAngle_FR);
+    returnValues[2] = returnValues_temp[0]; //wSpeed_FR
+    returnValues[3] = returnValues_temp[1]; //wAngle_FR
+    optimizeAngle(returnValues_temp, wSpeed_BL, wAngle_BL);
+    returnValues[4] = returnValues_temp[0]; //wSpeed_BL
+    returnValues[5] = returnValues_temp[1]; //wAngle_BL
+    optimizeAngle(returnValues_temp, wSpeed_BR, wAngle_BR);
+    returnValues[6] = returnValues_temp[0]; //wSpeed_BR
+    returnValues[7] = returnValues_temp[1]; //wAngle_BR
+}
+
+void SwerveMath::optimizeAngle(float returnValues[], double currentSpeed, double currentAngle)
+{
+    if(currentAngle >= 90)
+    {
+        returnValues[0] = -1 * currentSpeed;
+        returnValues[1] = currentAngle - 180;
+
+    }
+    else if(currentAngle < -90)
+    {
+        returnValues[0] = -1 * currentSpeed;
+        returnValues[1] = currentAngle + 180;
+    }
+    else
+    {
+        returnValues[0] = currentSpeed;
+        returnValues[1] = currentAngle;
+    }
+}
