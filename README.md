@@ -1,2 +1,2 @@
 # wcr_4
-Repository for Wall Climbing robot
+Repository for 4th version of Wall Climbing Robotwith 4WID4WIS kinematic structure
